@@ -1,6 +1,8 @@
 # Unreleased
 
 - Fixed plugin configuration not being validated
+- Removed stats-go and opentracing.io
+- Added opencensus for tracing and metric collection 
 
 # 3.8.4
 

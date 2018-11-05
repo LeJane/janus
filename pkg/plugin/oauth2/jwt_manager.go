@@ -5,10 +5,10 @@ import (
 
 	jwtBase "github.com/dgrijalva/jwt-go"
 	"github.com/hellofresh/janus/pkg/jwt"
-	"github.com/hellofresh/janus/pkg/metrics"
-	"github.com/hellofresh/stats-go/bucket"
-	"github.com/hellofresh/stats-go/client"
+	obs "github.com/hellofresh/janus/pkg/observability"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/stats"
+	"go.opencensus.io/tag"
 )
 
 // JWTManager is responsible for managing the JWT tokens
@@ -27,27 +27,22 @@ func (m *JWTManager) IsKeyAuthorized(ctx context.Context, accessToken string) bo
 		return false
 	}
 
-	stats := metrics.WithContext(ctx)
-	if stats == nil {
-		return false
-	}
-
 	if _, err := m.parser.Parse(accessToken); err != nil {
 		log.WithError(err).Info("Failed to parse and validate the JWT")
 
 		switch jwtErr := err.(type) {
 		case *jwtBase.ValidationError:
-			shouldReport(stats, jwtErr.Errors&jwtBase.ValidationErrorExpired != 0, "ValidationErrorExpired")
-			shouldReport(stats, jwtErr.Errors&jwtBase.ValidationErrorClaimsInvalid != 0, "ValidationErrorClaimsInvalid")
-			shouldReport(stats, jwtErr.Errors&jwtBase.ValidationErrorIssuedAt != 0, "ValidationErrorIssuedAt")
-			shouldReport(stats, jwtErr.Errors&jwtBase.ValidationErrorNotValidYet != 0, "ValidationErrorNotValidYet")
-			shouldReport(stats, jwtErr.Errors&jwtBase.ValidationErrorIssuer != 0, "ValidationErrorIssuer")
-			shouldReport(stats, jwtErr.Errors&jwtBase.ValidationErrorMalformed != 0, "ValidationErrorMalformed")
-			shouldReport(stats, jwtErr.Errors&jwtBase.ValidationErrorSignatureInvalid != 0, "ValidationErrorSignatureInvalid")
-			shouldReport(stats, jwtErr.Errors&jwtBase.ValidationErrorUnverifiable != 0, "ValidationErrorUnverifiable")
+			shouldReport(ctx, jwtErr.Errors&jwtBase.ValidationErrorExpired != 0, "ValidationErrorExpired")
+			shouldReport(ctx, jwtErr.Errors&jwtBase.ValidationErrorClaimsInvalid != 0, "ValidationErrorClaimsInvalid")
+			shouldReport(ctx, jwtErr.Errors&jwtBase.ValidationErrorIssuedAt != 0, "ValidationErrorIssuedAt")
+			shouldReport(ctx, jwtErr.Errors&jwtBase.ValidationErrorNotValidYet != 0, "ValidationErrorNotValidYet")
+			shouldReport(ctx, jwtErr.Errors&jwtBase.ValidationErrorIssuer != 0, "ValidationErrorIssuer")
+			shouldReport(ctx, jwtErr.Errors&jwtBase.ValidationErrorMalformed != 0, "ValidationErrorMalformed")
+			shouldReport(ctx, jwtErr.Errors&jwtBase.ValidationErrorSignatureInvalid != 0, "ValidationErrorSignatureInvalid")
+			shouldReport(ctx, jwtErr.Errors&jwtBase.ValidationErrorUnverifiable != 0, "ValidationErrorUnverifiable")
 			return false
 		default:
-			stats.TrackMetric("tokens", bucket.MetricOperation{"jwt-manager", "parse-error", "ErrFailedToParse"})
+			shouldReport(ctx, true, "ErrFailedToParse")
 			return false
 		}
 	}
@@ -55,8 +50,9 @@ func (m *JWTManager) IsKeyAuthorized(ctx context.Context, accessToken string) bo
 	return true
 }
 
-func shouldReport(client client.Client, typeCheck bool, operation string) {
+func shouldReport(ctx context.Context, typeCheck bool, error string) {
 	if typeCheck {
-		client.TrackMetric("tokens", bucket.MetricOperation{"jwt-manager", "parse-error", operation})
+		ctx, _ := tag.New(ctx, tag.Insert(obs.KeyJWTValidationErrorType, error))
+		stats.Record(ctx, obs.MJWTManagerValidationErrors.M(1))
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/Knetic/govaluate"
 	"github.com/felixge/httpsnoop"
 	janusErr "github.com/hellofresh/janus/pkg/errors"
-	"github.com/hellofresh/janus/pkg/metrics"
 	"github.com/pkg/errors"
 	"github.com/rafaeljesus/retry-go"
 	log "github.com/sirupsen/logrus"
@@ -56,8 +55,6 @@ func NewRetryMiddleware(cfg Config) func(http.Handler) http.Handler {
 
 				return nil
 			}, cfg.Attempts, time.Duration(cfg.Backoff)); err != nil {
-				statsClient := metrics.WithContext(r.Context())
-				statsClient.SetHTTPRequestSection(proxySection).TrackRequest(r, nil, false).ResetHTTPRequestSection()
 				janusErr.Handler(w, errors.Wrap(err, "request failed too many times"))
 			}
 		})

@@ -2,8 +2,6 @@ package cb
 
 import (
 	"github.com/afex/hystrix-go/hystrix"
-	"github.com/afex/hystrix-go/hystrix/metric_collector"
-	"github.com/afex/hystrix-go/plugins"
 	"github.com/asaskevich/govalidator"
 	"github.com/hellofresh/janus/pkg/plugin"
 	"github.com/hellofresh/janus/pkg/proxy"
@@ -12,8 +10,7 @@ import (
 )
 
 const (
-	statsdPrefix = "hystrix"
-	pluginName   = "cb"
+	pluginName = "cb"
 )
 
 // Config represents the Body Limit configuration
@@ -24,7 +21,6 @@ type Config struct {
 }
 
 func init() {
-	plugin.RegisterEventHook(plugin.StartupEvent, onStartup)
 	plugin.RegisterEventHook(plugin.AdminAPIStartupEvent, onAdminAPIStartup)
 	plugin.RegisterPlugin(pluginName, plugin.Plugin{
 		Action:   setupCB,
@@ -82,31 +78,5 @@ func onAdminAPIStartup(event interface{}) error {
 	hystrixStreamHandler.Start()
 
 	e.Router.GET("/hystrix", hystrixStreamHandler.ServeHTTP)
-	return nil
-}
-
-func onStartup(event interface{}) error {
-	logger := log.WithFields(log.Fields{
-		"plugin_event": plugin.StartupEvent,
-		"plugin":       pluginName,
-	})
-
-	e, ok := event.(plugin.OnStartup)
-	if !ok {
-		return errors.New("Could not convert event to startup type")
-	}
-
-	logger.WithField("metrics_dsn", e.Config.Stats.DSN).Debug("Statsd metrics enabled")
-	c, err := plugins.InitializeStatsdCollector(&plugins.StatsdCollectorConfig{
-		StatsdAddr: e.Config.Stats.DSN,
-		Prefix:     statsdPrefix,
-	})
-	if err != nil {
-		return errors.Wrap(err, "could not initialize statsd client")
-	}
-
-	metricCollector.Registry.Register(c.NewStatsdCollector)
-	logger.Debug("Metrics enabled")
-
 	return nil
 }

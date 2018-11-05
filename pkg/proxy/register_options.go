@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/hellofresh/janus/pkg/router"
-	"github.com/hellofresh/stats-go/client"
 )
 
 // RegisterOption represents the register options
@@ -28,13 +27,6 @@ func WithFlushInterval(d time.Duration) RegisterOption {
 func WithIdleConnectionsPerHost(value int) RegisterOption {
 	return func(r *Register) {
 		r.idleConnectionsPerHost = value
-	}
-}
-
-// WithStatsClient sets stats client instance for proxy
-func WithStatsClient(statsClient client.Client) RegisterOption {
-	return func(r *Register) {
-		r.statsClient = statsClient
 	}
 }
 

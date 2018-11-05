@@ -3,7 +3,6 @@ package cb
 import (
 	"testing"
 
-	"github.com/hellofresh/janus/pkg/config"
 	"github.com/hellofresh/janus/pkg/plugin"
 	"github.com/hellofresh/janus/pkg/proxy"
 	"github.com/hellofresh/janus/pkg/router"
@@ -33,14 +32,6 @@ func TestCbPlugin(t *testing.T) {
 			scenario: "when the plugin admin startup is successful",
 			function: testAdminStartupSuccess,
 		},
-		{
-			scenario: "when the plugin startup is successful",
-			function: testStartupSuccess,
-		},
-		{
-			scenario: "when the plugin startup is not successful",
-			function: testStartupNoSuccess,
-		},
 	}
 
 	for _, test := range tests {
@@ -48,28 +39,6 @@ func TestCbPlugin(t *testing.T) {
 			test.function(t)
 		})
 	}
-}
-
-func testStartupNoSuccess(t *testing.T) {
-	event2 := plugin.OnStartup{
-		Register: proxy.NewRegister(proxy.WithRouter(router.NewChiRouter())),
-		Config: &config.Specification{
-			Stats: config.Stats{
-				DSN: "statsd:8080",
-			},
-		},
-	}
-	err := onStartup(event2)
-	require.Error(t, err)
-}
-
-func testStartupSuccess(t *testing.T) {
-	event2 := plugin.OnStartup{
-		Register: proxy.NewRegister(proxy.WithRouter(router.NewChiRouter())),
-		Config:   &config.Specification{},
-	}
-	err := onStartup(event2)
-	require.NoError(t, err)
 }
 
 func testAdminStartupSuccess(t *testing.T) {

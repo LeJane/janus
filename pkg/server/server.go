@@ -17,7 +17,6 @@ import (
 	"github.com/hellofresh/janus/pkg/proxy"
 	"github.com/hellofresh/janus/pkg/router"
 	"github.com/hellofresh/janus/pkg/web"
-	"github.com/hellofresh/stats-go/client"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,7 +30,6 @@ type Server struct {
 	configurationChan     chan api.ConfigurationChanged
 	stopChan              chan struct{}
 	globalConfig          *config.Specification
-	statsClient           client.Client
 	webServer             *web.Server
 	profilingEnabled      bool
 	profilingPublic       bool
@@ -77,7 +75,6 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 		proxy.WithFlushInterval(s.globalConfig.BackendFlushInterval),
 		proxy.WithIdleConnectionsPerHost(s.globalConfig.MaxIdleConnsPerHost),
 		proxy.WithIdleConnTimeout(s.globalConfig.IdleConnTimeout),
-		proxy.WithStatsClient(s.statsClient),
 	)
 
 	// API Loader must be initialised synchronously as well to avoid race condition
@@ -102,7 +99,6 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 	}
 
 	event := plugin.OnStartup{
-		StatsClient:   s.statsClient,
 		Register:      s.register,
 		Config:        s.globalConfig,
 		Configuration: definitions,
@@ -281,10 +277,8 @@ func (s *Server) createRouter() router.Router {
 	}
 
 	r.Use(
-		middleware.NewStats(s.statsClient).Handler,
 		middleware.NewLogger().Handler,
 		middleware.NewRecovery(errors.RecoveryHandler),
-		middleware.NewOpenTracing(s.globalConfig.TLS.IsHTTPS()).Handler,
 	)
 
 	// some routers may panic when have empty routes list, so add one dummy 404 route to avoid this

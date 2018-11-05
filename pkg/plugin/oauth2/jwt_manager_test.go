@@ -7,8 +7,6 @@ import (
 
 	jwtbase "github.com/dgrijalva/jwt-go"
 	"github.com/hellofresh/janus/pkg/jwt"
-	"github.com/hellofresh/janus/pkg/metrics"
-	"github.com/hellofresh/stats-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,11 +20,7 @@ func TestJWTManagerValidKey(t *testing.T) {
 	token, err := issueToken(signingMethod, 1*time.Hour)
 	require.NoError(t, err)
 
-	client, err := stats.NewClient("noop://")
-	require.NoError(t, err)
-
-	ctx := metrics.NewContext(context.Background(), client)
-	assert.True(t, manager.IsKeyAuthorized(ctx, token))
+	assert.True(t, manager.IsKeyAuthorized(context.Background(), token))
 }
 
 func TestJWTManagerInvalidKey(t *testing.T) {
@@ -35,11 +29,7 @@ func TestJWTManagerInvalidKey(t *testing.T) {
 	parser := jwt.NewParser(config)
 	manager := NewJWTManager(parser)
 
-	client, err := stats.NewClient("noop://")
-	require.NoError(t, err)
-
-	ctx := metrics.NewContext(context.Background(), client)
-	assert.False(t, manager.IsKeyAuthorized(ctx, "wrong"))
+	assert.False(t, manager.IsKeyAuthorized(context.Background(), "wrong"))
 }
 
 func TestJWTManagerNilContext(t *testing.T) {

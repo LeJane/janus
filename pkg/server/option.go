@@ -3,7 +3,6 @@ package server
 import (
 	"github.com/hellofresh/janus/pkg/api"
 	"github.com/hellofresh/janus/pkg/config"
-	"github.com/hellofresh/stats-go/client"
 )
 
 // Option represents the available options
@@ -13,13 +12,6 @@ type Option func(*Server)
 func WithGlobalConfig(globalConfig *config.Specification) Option {
 	return func(s *Server) {
 		s.globalConfig = globalConfig
-	}
-}
-
-// WithMetricsClient sets the metric provider
-func WithMetricsClient(client client.Client) Option {
-	return func(s *Server) {
-		s.statsClient = client
 	}
 }
 

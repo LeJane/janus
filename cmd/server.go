@@ -5,7 +5,6 @@ import (
 
 	"github.com/hellofresh/janus/pkg/api"
 	"github.com/hellofresh/janus/pkg/errors"
-	"github.com/hellofresh/janus/pkg/opentracing"
 	"github.com/hellofresh/janus/pkg/server"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -57,13 +56,9 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions) error {
 
 	initConfig()
 	initLog()
-	initStatsClient()
+	initStatsExporter()
+	initTracingExporter()
 
-	tracingFactory := opentracing.New(globalConfig.Tracing)
-	tracingFactory.Setup()
-
-	defer tracingFactory.Close()
-	defer statsClient.Close()
 	defer globalConfig.Log.Flush()
 
 	repo, err := api.BuildRepository(globalConfig.Database.DSN, globalConfig.Cluster.UpdateFrequency)
@@ -74,7 +69,6 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions) error {
 
 	svr := server.New(
 		server.WithGlobalConfig(globalConfig),
-		server.WithMetricsClient(statsClient),
 		server.WithProvider(repo),
 		server.WithProfiler(opts.profilingEnabled, opts.profilingPublic),
 	)
